@@ -27,20 +27,26 @@ public class StartProcess implements Command {
 
     public static class OutputRepeater extends Thread {
         OutputStream os;
+        Thread thread;
 
-        OutputRepeater(OutputStream os) {
+        OutputRepeater(OutputStream os, Thread thread) {
             this.os = os;
+            this.thread = thread;
         }
 
         public void run() {
             int intval=0;
-            try {
-                while ((intval = System.in.read())!=-1) {
-                    os.write(intval);
-                    os.flush();
+            try(BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(os)))
+            {
+                while (thread.isAlive() && (intval=System.in.read())!=-1) {
+                    bw.write(intval);
+                    bw.flush();
+                    Thread.sleep(100);
                 }
             } catch (IOException ioe) {
                 ioe.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
 
@@ -52,15 +58,16 @@ public class StartProcess implements Command {
             ProcessBuilder procBuilder = new ProcessBuilder(args);
             procBuilder.redirectErrorStream(true);
             Process process = procBuilder.start();
-            OutputStream stdout = process.getOutputStream();
             InputStream stdin = process.getInputStream();
+            OutputStream stdout = process.getOutputStream();
             InputRepeater inputRepeater = new InputRepeater(stdin);
-            OutputRepeater outputRepeater = new OutputRepeater(stdout);
+            OutputRepeater outputRepeater = new OutputRepeater(stdout, inputRepeater);
             inputRepeater.start();
             outputRepeater.start();
             inputRepeater.join();
-            outputRepeater.interrupt();
+            outputRepeater.join();
             int exitVal = process.waitFor();
+            stdin.close();
             if (exitVal == 0) {
                 System.out.println("The program finished successfully");
             } else {

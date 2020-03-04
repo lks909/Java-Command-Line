@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -8,7 +9,11 @@ import java.util.Scanner;
 public class CommandProcessor {
 
     static final String[] AVAILABLE_COMMANDS = {"dir", "cd", "pwd", "!", "exit"};
-    static String currentDirectory = "C:\\Users\\Alexey";
+    static String currentDirectory = "";
+
+    static {
+        currentDirectory = new File(System.getProperty("user.dir")).getAbsolutePath();
+    }
 
     public static String parseConfigXml(String commandName) throws IOException {
         Properties p = new Properties();
@@ -25,9 +30,9 @@ public class CommandProcessor {
     public static void main(String[] args) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         System.out.println(">Java Command Line");
         String command = "";
+        Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("Enter command:");
-            Scanner scanner = new Scanner(System.in);
             command = scanner.nextLine();
             ParsedLogicalCommand plc = new ParsedLogicalCommand(command);
             if (!Arrays.asList(AVAILABLE_COMMANDS).contains(plc.getFirstCommand().getCommand())
@@ -41,6 +46,7 @@ public class CommandProcessor {
             int commandExitCode = plc.run();
             System.out.println("---------------------------");
         }
+        scanner.close();
     }
 
 
